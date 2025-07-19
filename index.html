@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Тренировки</title>
+  <style>
+    body {
+      background-color: #111827;
+      color: #e5e7eb;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      display: flex;
+      justify-content: space-around;
+      background: #1f2937;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      z-index: 10;
+    }
+    nav button {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+    nav button.active {
+      color: #ffffff;
+      border-bottom: 2px solid #3b82f6;
+    }
+    section {
+      display: none;
+      padding: 70px 20px 20px;
+    }
+    section.active {
+      display: block;
+    }
+    .btn {
+      background: #3b82f6;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    input, .exercise-input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: none;
+      background: #374151;
+      color: #e5e7eb;
+    }
+    canvas {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    #adjust-workout {
+      background: #1f2937;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showPage('home')" id="tab-home" class="active">Главная</button>
+    <button onclick="showPage('workout')" id="tab-workout">Тренировки</button>
+    <button onclick="showPage('progress')" id="tab-progress">Прогресс</button>
+    <button onclick="showPage('settings')" id="tab-settings">Настройки</button>
+  </nav>
+
+  <section id="home" class="active">
+    <h1>Добро пожаловать</h1>
+    <div id="user-info"></div>
+    <button class="btn" onclick="toggleEdit()">Изменить данные</button>
+    <form id="edit-form" style="display:none;" onsubmit="saveUser(event)">
+      <input type="number" id="age" placeholder="Возраст (10–26)" min="10" max="26" required />
+      <input type="number" id="weight" placeholder="Вес (кг)" required />
+      <input type="number" id="height" placeholder="Рост (см)" required />
+      <button type="submit" class="btn">Сохранить</button>
+    </form>
+  </section>
+
+  <section id="workout">
+    <h1>Тренировка дня</h1>
+    <div id="workout-list"></div>
+    <div id="adjust-workout"></div>
+    <button class="btn" onclick="showAdjustWorkout()">Завершить тренировку</button>
+  </section>
+
+  <section id="progress">
+    <h1>Прогресс</h1>
+    <canvas id="progress-chart" width="400" height="200"></canvas>
+  </section>
+
+  <section id="settings">
+    <h1>Настройки</h1>
+    <button class="btn" onclick="resetData()">Сбросить все данные</button>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let user = JSON.parse(localStorage.getItem('user')) || {};
+    let progress = JSON.parse(localStorage.getItem('progress')) || [];
+
+    function showPage(page) {
+      document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(page).classList.add('active');
+      document.getElementById('tab-' + page).classList.add('active');
+      if (page === 'home') displayUser();
+      if (page === 'workout') displayWorkout();
+      if (page === 'progress') displayProgress();
+    }
+
+    function displayUser() {
+      const info = document.getElementById('user-info');
+      if (user.age && user.weight && user.height) {
+        info.innerHTML = `Возраст: ${user.age}<br>Вес: ${user.weight} кг<br>Рост: ${user.height} см`;
+      } else {
+        info.innerHTML = 'Введите данные.';
+      }
+    }
+
+    function toggleEdit() {
+      const form = document.getElementById('edit-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function saveUser(e) {
+      e.preventDefault();
+      user.age = +document.getElementById('age').value;
+      user.weight = +document.getElementById('weight').value;
+      user.height = +document.getElementById('height').value;
+      localStorage.setItem('user', JSON.stringify(user));
+      toggleEdit();
+      displayUser();
+    }
+
+    function generateWorkout(dayOffset = 0) {
+      if (!user.age) return {};
+      const base = Math.floor(user.age / 2);
+      return {
+        run: base + dayOffset,
+        press: base * 2 + dayOffset * 2,
+        pushups: base + dayOffset,
+        squats: base * 2 + dayOffset
+      };
+    }
+
+    function displayWorkout() {
+      const list = document.getElementById('workout-list');
+      list.innerHTML = '';
+      const workout = generateWorkout(progress.length);
+      list.innerHTML = `
+        <p>Бег: ${workout.run} мин</p>
+        <p>Пресс: ${workout.press} раз</p>
+        <p>Отжимания: ${workout.pushups} раз</p>
+        <p>Приседания: ${workout.squats} раз</p>
+      `;
+    }
+
+    function showAdjustWorkout() {
+      const container = document.getElementById('adjust-workout');
+      const workout = generateWorkout(progress.length);
+      container.innerHTML = `
+        <h3>Измените тренировку</h3>
+        <label>Бег (мин): <input class="exercise-input" id="adjust-run" type="number" value="${workout.run}" /></label><br>
+        <label>Пресс (раз): <input class="exercise-input" id="adjust-press" type="number" value="${workout.press}" /></label><br>
+        <label>Отжимания (раз): <input class="exercise-input" id="adjust-pushups" type="number" value="${workout.pushups}" /></label><br>
+        <label>Приседания (раз): <input class="exercise-input" id="adjust-squats" type="number" value="${workout.squats}" /></label><br>
+        <button class="btn" onclick="completeWorkout()">Сохранить и завершить</button>
+      `;
+    }
+
+    function completeWorkout() {
+      const run = +document.getElementById('adjust-run').value;
+      const press = +document.getElementById('adjust-press').value;
+      const pushups = +document.getElementById('adjust-pushups').value;
+      const squats = +document.getElementById('adjust-squats').value;
+      progress.push({
+        day: progress.length + 1,
+        run, press, pushups, squats
+      });
+      localStorage.setItem('progress', JSON.stringify(progress));
+      alert('Тренировка завершена!');
+      document.getElementById('adjust-workout').innerHTML = '';
+      displayWorkout();
+      displayProgress();
+    }
+
+    function displayProgress() {
+      const ctx = document.getElementById('progress-chart').getContext('2d');
+      const labels = progress.map(p => `День ${p.day}`);
+      const datasets = [
+        { label: 'Бег (мин)', data: progress.map(p => p.run), borderColor: '#3b82f6', fill: false },
+        { label: 'Пресс (раз)', data: progress.map(p => p.press), borderColor: '#10b981', fill: false },
+        { label: 'Отжимания (раз)', data: progress.map(p => p.pushups), borderColor: '#f59e0b', fill: false },
+        { label: 'Приседания (раз)', data: progress.map(p => p.squats), borderColor: '#ef4444', fill: false }
+      ];
+      if (window.chart) {
+        window.chart.data = { labels, datasets };
+        window.chart.update();
+      } else {
+        window.chart = new Chart(ctx, { type: 'line', data: { labels, datasets } });
+      }
+    }
+
+    function resetData() {
+      if (confirm('Сбросить все данные?')) {
+        localStorage.clear();
+        user = {};
+        progress = [];
+        location.reload();
+      }
+    }
+
+    displayUser();
+    if (progress.length) displayProgress();
+  </script>
+</body>
+</html>
