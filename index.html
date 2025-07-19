@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Тренировки по возрасту</title>
+  <title>Тренировки</title>
   <style>
     body {
       background-color: #111827;
@@ -65,7 +65,7 @@
       border-radius: 10px;
       padding: 10px;
     }
-    #adjust-workout, #workout-summary, #goal-section {
+    #adjust-workout {
       background: #1f2937;
       padding: 10px;
       border-radius: 5px;
@@ -97,15 +97,6 @@
     <h1>Тренировка дня</h1>
     <div id="workout-list"></div>
     <div id="adjust-workout"></div>
-    <div id="workout-summary"></div>
-    <div id="goal-section">
-      <h3>Цели</h3>
-      <label>Бег (мин): <input id="goal-run" type="number" /></label><br>
-      <label>Пресс (раз): <input id="goal-press" type="number" /></label><br>
-      <label>Отжимания (раз): <input id="goal-pushups" type="number" /></label><br>
-      <label>Приседания (раз): <input id="goal-squats" type="number" /></label><br>
-      <button class="btn" onclick="saveGoals()">Сохранить цели</button>
-    </div>
     <button class="btn" onclick="showAdjustWorkout()">Завершить тренировку</button>
   </section>
 
@@ -123,7 +114,6 @@
   <script>
     let user = JSON.parse(localStorage.getItem('user')) || {};
     let progress = JSON.parse(localStorage.getItem('progress')) || [];
-    let goals = JSON.parse(localStorage.getItem('goals')) || {};
 
     function showPage(page) {
       document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
@@ -159,15 +149,6 @@
       displayUser();
     }
 
-    function saveGoals() {
-      goals.run = +document.getElementById('goal-run').value || 0;
-      goals.press = +document.getElementById('goal-press').value || 0;
-      goals.pushups = +document.getElementById('goal-pushups').value || 0;
-      goals.squats = +document.getElementById('goal-squats').value || 0;
-      localStorage.setItem('goals', JSON.stringify(goals));
-      alert('Цели сохранены!');
-    }
-
     function generateWorkout(dayOffset = 0) {
       if (!user.age) return {};
       const base = Math.floor(user.age / 2);
@@ -181,27 +162,14 @@
 
     function displayWorkout() {
       const list = document.getElementById('workout-list');
-      const summary = document.getElementById('workout-summary');
       list.innerHTML = '';
-      summary.innerHTML = '';
       const workout = generateWorkout(progress.length);
       list.innerHTML = `
-        <p>Бег: ${workout.run} мин ${goals.run ? `(цель: ${goals.run})` : ''}</p>
-        <p>Пресс: ${workout.press} раз ${goals.press ? `(цель: ${goals.press})` : ''}</p>
-        <p>Отжимания: ${workout.pushups} раз ${goals.pushups ? `(цель: ${goals.pushups})` : ''}</p>
-        <p>Приседания: ${workout.squats} раз ${goals.squats ? `(цель: ${goals.squats})` : ''}</p>
+        <p>Бег: ${workout.run} мин</p>
+        <p>Пресс: ${workout.press} раз</p>
+        <p>Отжимания: ${workout.pushups} раз</p>
+        <p>Приседания: ${workout.squats} раз</p>
       `;
-      summary.innerHTML = `
-        <h3>Всего выполнено:</h3>
-        <p>Бег: ${total('run')} мин</p>
-        <p>Пресс: ${total('press')} раз</p>
-        <p>Отжимания: ${total('pushups')} раз</p>
-        <p>Приседания: ${total('squats')} раз</p>
-      `;
-    }
-
-    function total(exercise) {
-      return progress.reduce((sum, entry) => sum + entry[exercise], 0);
     }
 
     function showAdjustWorkout() {
@@ -255,7 +223,6 @@
         localStorage.clear();
         user = {};
         progress = [];
-        goals = {};
         location.reload();
       }
     }
